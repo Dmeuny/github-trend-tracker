@@ -362,7 +362,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main.serve(
-        name="github-daily",
-        interval=86400,  # 24 hours in seconds
-    )
+    main()

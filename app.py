@@ -24,33 +24,39 @@ st.divider()
 # -----------------------
 # DATA LOAD
 # -----------------------
+def get_connection():
+    try:
+        return psycopg2.connect(
+            host=st.secrets["DB_HOST"],
+            port=int(st.secrets["DB_PORT"]),
+            database=st.secrets["DB_NAME"],
+            user=st.secrets["DB_USER"],
+            password=st.secrets["DB_PASSWORD"],
+        )
+    except Exception:
+        return psycopg2.connect(
+            host=os.getenv("DB_HOST", "localhost"),
+            port=int(os.getenv("DB_PORT", 5432)),
+            database=os.getenv("DB_NAME", "github"),
+            user=os.getenv("DB_USER", "postgres"),
+            password=os.getenv("DB_PASSWORD"),
+        )
+
 @st.cache_data(ttl=3600)
 def load_trends():
-    conn = psycopg2.connect(
-        host=os.getenv("DB_HOST", "localhost"),
-        port=int(os.getenv("DB_PORT", 5432)),
-        database=os.getenv("DB_NAME", "github"),
-        user=os.getenv("DB_USER", "postgres"),
-        password=os.getenv("DB_PASSWORD"),
-    )
+    conn = get_connection()
     df = pd.read_sql("""
         SELECT name, topic, current_stars, prev_stars, star_growth, growth_pct, last_updated
-        FROM dbt.repo_trends
-        WHERE star_growth IS NOT NULL
-        ORDER BY growth_pct DESC
+        FROM repo_history
+        WHERE is_current = TRUE
+        ORDER BY is_current DESC
     """, conn)
     conn.close()
     return df
 
 @st.cache_data(ttl=3600)
 def load_history():
-    conn = psycopg2.connect(
-        host=os.getenv("DB_HOST", "localhost"),
-        port=int(os.getenv("DB_PORT", 5432)),
-        database=os.getenv("DB_NAME", "github"),
-        user=os.getenv("DB_USER", "postgres"),
-        password=os.getenv("DB_PASSWORD"),
-    )
+    conn = get_connection()
     df = pd.read_sql("""
         SELECT name, topic, stars, is_current, start_date
         FROM repo_history
