@@ -251,4 +251,4 @@ Simple keyword matching gets to ~85% accuracy but struggles with repos that use 
 ## Author
 
 **Devin Meunier**
-[GitHub](https://github.com/Dmeuny) | [LinkedIn](https://www.linkedin.com/in/devin-meunier)
+| [LinkedIn](https://www.linkedin.com/in/devin-meunier)
