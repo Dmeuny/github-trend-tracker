@@ -1,6 +1,10 @@
 # GitHub Trend Tracker
 
-A fully automated ELT pipeline that tracks momentum across Data Engineering and AI GitHub repositories — built with Python, Postgres, dbt, Prefect, and Streamlit.
+A production-style data pipeline that tracks how GitHub repositories evolve over time - not just their current state.
+
+Built with Python, Prefect, Postgres, dbt, and Streamlit, this project captures historical changes (SCD Type 2) to answer:
+
+“Which repos are actually gaining momentum, and when did that start?”
 
 **Live Dashboard → [repo-trend-tracker-rkwrfwtffgcrs3gegd2gpy.streamlit.app](https://repo-trend-tracker-rkwrfwtffgcrs3gegd2gpy.streamlit.app)**
 
@@ -11,6 +15,15 @@ A fully automated ELT pipeline that tracks momentum across Data Engineering and 
 Most data pipelines overwrite records. When something changes, the previous state is gone.
 
 This pipeline preserves history — so you can ask "what did this repo look like 3 months ago?" and actually get an answer. It pulls repositories from the GitHub API across multiple search queries, classifies them by topic, and tracks how they change over time: stars, descriptions, language, and topic.
+
+## Why This Project Matters
+
+Simulates a real-world analytics system:
+- Handles **incremental data ingestion**
+- Preserves **historical state (SCD Type 2)**
+- Uses **orchestration (Prefect)** instead of scripts
+- Separates concerns with **dbt modeling layers**
+- Serves data to a **live application (Streamlit)**
 
 ---
 
@@ -38,13 +51,13 @@ This follows an **ELT pattern** -- raw data is loaded into the warehouse first, 
 - Fetches repositories from the GitHub Search API across multiple queries
 - Deduplicates results by repo ID across queries
 - Generates an MD5 fingerprint of key attributes (stars, description, language, topic) to detect meaningful changes
-- Loads raw data into a `staging_cleaned` table -- truncated and reloaded on each run
-- Automatically triggers `dbt snapshot` and `dbt run` after each successful ingest
+- Loads data into a staging table (idempotent reload per run)
+- Triggers dbt snapshot + model runs as part of the pipeline
 
 ### Change Detection (SCD Type 2)
 - Compares fingerprints between staging and history
 - If a change is detected: expires the old record (`is_current = FALSE`) and inserts a new current row
-- Two set-based SQL queries replace what would otherwise be hundreds of row-by-row round trips
+- Implements SCD2 using set-based SQL (no row-by-row processing)
 - Every version of every repo is preserved with `start_date` and `end_date` timestamps
 
 ### Orchestration (Prefect)
