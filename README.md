@@ -29,25 +29,21 @@ Designed to reflect a real-world analytics system:
 
 ## Architecture
 
+
+<p align="center">
+  <img src="assets/pipeline_diagram.png" width="900"/>
+</p>
+
+<p align="center">
+  <em>ELT pipeline with Prefect orchestration, dbt transformations, and SCD Type 2 history tracking</em>
+</p>
+
+
 **Pipeline Characteristics**
 - Daily scheduled ingestion via Prefect
 - Idempotent pipeline design (safe to re-run)
 - Historical versioning via SCD Type 2
 - Fully automated ELT workflow
-
-```
-GitHub API (Source)
-    |
-Python Ingestion + Prefect (Orchestration)
-    |
-Postgres (Raw + Staging Layer)
-    |
-dbt (Transformations + SCD2 Snapshots)
-    |
-Analytics Layer (repo_trends mart)
-    |
-Streamlit Dashboard (Serving Layer)
-```
 
 This follows an **ELT pattern** -- raw data is loaded into the warehouse first, and all transformations happen inside the database via dbt.
 
