@@ -1,4 +1,3 @@
-import plotly.express as px
 import streamlit as st
 import psycopg2
 import pandas as pd
@@ -24,40 +23,32 @@ st.divider()
 # -----------------------
 # DATA LOAD
 # -----------------------
-def get_connection():
-    try:
-        return psycopg2.connect(
-            host=st.secrets["DB_HOST"],
-            port=int(st.secrets["DB_PORT"]),
-            database=st.secrets["DB_NAME"],
-            user=st.secrets["DB_USER"],
-            password=st.secrets["DB_PASSWORD"],
-            sslmode="require"
-        )
-    except Exception:
-        return psycopg2.connect(
-            host=os.getenv("DB_HOST", "localhost"),
-            port=int(os.getenv("DB_PORT", 5432)),
-            database=os.getenv("DB_NAME", "github"),
-            user=os.getenv("DB_USER", "postgres"),
-            password=os.getenv("DB_PASSWORD"),
-        )
-
 @st.cache_data(ttl=3600)
 def load_trends():
-    conn = get_connection()
+    conn = psycopg2.connect(
+        host=os.getenv("DB_HOST", "localhost"),
+        port=int(os.getenv("DB_PORT", 5432)),
+        database=os.getenv("DB_NAME", "github"),
+        user=os.getenv("DB_USER", "postgres"),
+        password=os.getenv("DB_PASSWORD"),
+    )
     df = pd.read_sql("""
         SELECT name, topic, current_stars, prev_stars, star_growth, growth_pct, last_updated
-        FROM repo_history
-        WHERE is_current = TRUE
-        ORDER BY is_current DESC
+        FROM dbt.repo_trends
+        ORDER BY current_stars DESC
     """, conn)
     conn.close()
     return df
 
 @st.cache_data(ttl=3600)
 def load_history():
-    conn = get_connection()
+    conn = psycopg2.connect(
+        host=os.getenv("DB_HOST", "localhost"),
+        port=int(os.getenv("DB_PORT", 5432)),
+        database=os.getenv("DB_NAME", "github"),
+        user=os.getenv("DB_USER", "postgres"),
+        password=os.getenv("DB_PASSWORD"),
+    )
     df = pd.read_sql("""
         SELECT name, topic, stars, is_current, start_date
         FROM repo_history
@@ -104,23 +95,13 @@ st.divider()
 # -----------------------
 st.subheader("Top 10 by Growth %")
 
-top10 = filtered.nlargest(10, "growth_pct").sort_values("growth_pct", ascending=True)
-top10["name"] = top10["name"].str[:30]
+top10 = filtered.head(10).sort_values("growth_pct")
 
-fig = px.bar(
-    top10,
-    x="growth_pct",
-    y="name",
-    orientation="h",
-    labels={"growth_pct": "Growth %", "name": "Repo"},
-    color="topic",
-    color_discrete_map={"DE": "#4C9BE8", "AI": "#F28C38", "OTHER": "#A8A8A8"},
-    category_orders={"name": top10["name"].tolist()}
+st.bar_chart(
+    top10.set_index("name")["growth_pct"],
+    horizontal=True,
+    color="#4C9BE8"
 )
-
-fig.update_layout(showlegend=True, xaxis_title="Growth %", yaxis_title="")
-fig.update_yaxes(categoryorder="total ascending")
-st.plotly_chart(fig, use_container_width=True)
 
 st.divider()
 
@@ -158,10 +139,8 @@ st.subheader("Growth by Topic")
 topic_summary = df.groupby("topic").agg(
     repos=("name", "count"),
     avg_growth_pct=("growth_pct", "mean"),
-    total_star_growth=("star_growth", "sum")
+    total_stars=("current_stars", "sum")
 ).reset_index()
-
-topic_summary = topic_summary.sort_values("avg_growth_pct", ascending=False)
 
 st.dataframe(
     topic_summary,
@@ -171,7 +150,7 @@ st.dataframe(
         "topic": "Topic",
         "repos": "Repos",
         "avg_growth_pct": st.column_config.NumberColumn("Avg Growth %", format="%.2f%%"),
-        "total_star_growth": st.column_config.NumberColumn("Total Star Growth", format="+%d"),
+        "total_stars": st.column_config.NumberColumn("Total Stars", format="%d"),
     }
 )
 

@@ -2,7 +2,7 @@ version: 2
 
 sources:
   - name: github
-    database: github
+    database: postgres
     schema: public
     tables:
       - name: staging_cleaned
