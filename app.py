@@ -68,7 +68,7 @@ def load_trends():
 def load_classification():
     conn = get_connection()
     df = pd.read_sql("""
-        SELECT name, repo_category, de_score, ai_score
+        SELECT name, topic_reclassified, de_score, ai_score
         FROM dbt_dbt.repo_classification
     """, conn)
     conn.close()
@@ -95,7 +95,7 @@ category_filter = st.selectbox(
     index=0
 )
 
-filtered = df if category_filter == "ALL" else df[df["repo_category"] == category_filter]
+filtered = df if category_filter == "ALL" else df[df["topic_reclassified"] == category_filter]
 
 
 # -----------------------
@@ -146,7 +146,7 @@ st.divider()
 st.subheader("All Repos — Ranked by Growth")
 
 display_df = filtered[[
-    "name", "repo_category", "current_stars", "star_growth", "growth_pct", "last_updated"
+    "name", "topic_reclassified", "current_stars", "star_growth", "growth_pct", "last_updated"
 ]].copy()
 
 display_df.columns = ["Repo", "Category", "Stars", "Star Growth", "Growth %", "Last Updated"]
@@ -170,7 +170,7 @@ st.divider()
 # -----------------------
 st.subheader("Growth by Topic")
 
-topic_summary = df.groupby("repo_category").agg(
+topic_summary = df.groupby("topic_reclassified").agg(
     repos=("name", "count"),
     avg_growth_pct=("growth_pct", "mean"),
     total_stars=("current_stars", "sum")
@@ -181,7 +181,7 @@ st.dataframe(
     use_container_width=True,
     hide_index=True,
     column_config={
-        "repo_category": "Category",
+        "topic_reclassified": "Category",
         "repos": "Repos",
         "avg_growth_pct": st.column_config.NumberColumn("Avg Growth %", format="%.2f%%"),
         "total_stars": st.column_config.NumberColumn("Total Stars", format="%d"),
