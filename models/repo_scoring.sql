@@ -11,10 +11,12 @@ select
     ) as de_score,
 
     -- AI score
-    (
-        3 * has_llm +
-        2 * has_ai_frameworks +
-        2 * has_embeddings
-    ) as ai_score
+   -- AI score
+(
+    3 * has_llm +
+    2 * has_ai_frameworks +
+    2 * has_embeddings +
+    2 * has_ml_framework
+) as ai_score
 
 from {{ ref('repo_features') }}
