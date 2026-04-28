@@ -1,6 +1,6 @@
 # GitHub Trend Tracker
 
-A production-style data pipeline that tracks how GitHub repositories evolve over time - not just their current state.
+A production-style data pipeline that runs daily and tracks how GitHub repositories evolve over time - not just their current state.
 
 Built with Python, Prefect, Postgres, dbt, and Streamlit, this project captures historical changes (SCD Type 2) to answer:
 
@@ -18,8 +18,8 @@ This pipeline preserves history — so you can ask "what did this repo look like
 
 ## Why This Project Matters
 
-Simulates a real-world analytics system:
-- Handles **incremental data ingestion**
+Designed to reflect a real-world analytics system:
+- Performs **scheduled ingestion with idempotent full refresh**
 - Preserves **historical state (SCD Type 2)**
 - Uses **orchestration (Prefect)** instead of scripts
 - Separates concerns with **dbt modeling layers**
@@ -29,16 +29,24 @@ Simulates a real-world analytics system:
 
 ## Architecture
 
+**Pipeline Characteristics**
+- Daily scheduled ingestion via Prefect
+- Idempotent pipeline design (safe to re-run)
+- Historical versioning via SCD Type 2
+- Fully automated ELT workflow
+
 ```
 GitHub API (Source)
     |
-Python + Prefect (Ingestion + Orchestration)
+Python Ingestion + Prefect (Orchestration)
     |
-Supabase / Postgres (Warehouse)
+Postgres (Raw + Staging Layer)
     |
-dbt (Transformation + Classification)
+dbt (Transformations + SCD2 Snapshots)
     |
-Streamlit Cloud (Dashboard)
+Analytics Layer (repo_trends mart)
+    |
+Streamlit Dashboard (Serving Layer)
 ```
 
 This follows an **ELT pattern** -- raw data is loaded into the warehouse first, and all transformations happen inside the database via dbt.
@@ -51,7 +59,7 @@ This follows an **ELT pattern** -- raw data is loaded into the warehouse first, 
 - Fetches repositories from the GitHub Search API across multiple queries
 - Deduplicates results by repo ID across queries
 - Generates an MD5 fingerprint of key attributes (stars, description, language, topic) to detect meaningful changes
-- Loads data into a staging table (idempotent reload per run)
+- Loads data into a staging layer with idempotent full refresh per run
 - Triggers dbt snapshot + model runs as part of the pipeline
 
 ### Change Detection (SCD Type 2)
