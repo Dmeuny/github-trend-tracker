@@ -132,11 +132,12 @@ stg_github_repos
 
 ---
 
-## Setup
+## Running This Project
+The pipeline runs against Supabase in production. To run locally, you can use either Supabase or a local Postgres instance.
 
 ### Option A -- Cloud (Supabase)
 
-1. Create a free account at [supabase.com](https://supabase.com)
+1. Create a Supabase account
 2. Create a new project and copy your connection string
 3. Run `schema.sql` in the Supabase SQL Editor to create tables
 4. Add credentials to `.env` (see below)
