@@ -48,54 +48,53 @@ def get_connection():
 # DATA LOAD
 # -----------------------
 
+# -----------------------
+# DATA LOAD
+# -----------------------
+
 @st.cache_data(ttl=3600)
 def load_trends():
     conn = get_connection()
     df = pd.read_sql("""
-        SELECT name, topic, current_stars, prev_stars, star_growth, growth_pct, last_updated
-        FROM dbt.repo_trends
-        ORDER BY current_stars DESC
+        SELECT name, current_stars, prev_stars, star_growth, growth_pct, last_updated
+        FROM dbt_dbt.repo_trends
     """, conn)
     conn.close()
     return df
+
 
 @st.cache_data(ttl=3600)
-def load_history():
+def load_classification():
     conn = get_connection()
     df = pd.read_sql("""
-        SELECT name, topic, stars, is_current, start_date
-        FROM repo_history
-        ORDER BY start_date DESC
-        LIMIT 500
+        SELECT name, repo_category, de_score, ai_score
+        FROM dbt_dbt.repo_classification
     """, conn)
     conn.close()
     return df
 
-try:
-    df = load_trends()
-except Exception as e:
-    st.error(f"Failed to load trends: {e}")
-    st.stop()
 
-try:
-    history = load_history()
-except Exception as e:
-    st.error(f"Failed to load history: {e}")
-    st.stop()
+trends = load_trends()
+classification = load_classification()
+
+
+# -----------------------
+# DATA PREP
+# -----------------------
+
+df = trends.merge(classification, on="name", how="left")
+
 
 # -----------------------
 # FILTERS
 # -----------------------
-col1, col2 = st.columns([1, 3])
+category_filter = st.selectbox(
+    "Filter by Category",
+    options=["ALL", "DE", "AI", "OTHER"],
+    index=0
+)
 
-with col1:
-    topic_filter = st.selectbox(
-        "Filter by Topic",
-        options=["All", "DE", "AI", "OTHER"],
-        index=0
-    )
-
-filtered = df if topic_filter == "All" else df[df["topic"] == topic_filter]
+filtered = df if category_filter == "ALL" else df[df["repo_category"] == category_filter]
 
 
 # -----------------------
@@ -134,10 +133,10 @@ st.divider()
 st.subheader("All Repos — Ranked by Growth")
 
 display_df = filtered[[
-    "name", "topic", "current_stars", "star_growth", "growth_pct", "last_updated"
+    "name", "repo_category", "current_stars", "star_growth", "growth_pct", "last_updated"
 ]].copy()
 
-display_df.columns = ["Repo", "Topic", "Stars", "Star Growth", "Growth %", "Last Updated"]
+display_df.columns = ["Repo", "Category", "Stars", "Star Growth", "Growth %", "Last Updated"]
 
 st.dataframe(
     display_df,
@@ -158,7 +157,7 @@ st.divider()
 # -----------------------
 st.subheader("Growth by Topic")
 
-topic_summary = df.groupby("topic").agg(
+topic_summary = df.groupby("repo_category").agg(
     repos=("name", "count"),
     avg_growth_pct=("growth_pct", "mean"),
     total_stars=("current_stars", "sum")
@@ -169,7 +168,7 @@ st.dataframe(
     use_container_width=True,
     hide_index=True,
     column_config={
-        "topic": "Topic",
+        "repo_category": "Category",
         "repos": "Repos",
         "avg_growth_pct": st.column_config.NumberColumn("Avg Growth %", format="%.2f%%"),
         "total_stars": st.column_config.NumberColumn("Total Stars", format="%d"),
