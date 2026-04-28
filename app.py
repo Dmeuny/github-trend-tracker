@@ -1,3 +1,4 @@
+import plotly.express as px
 import streamlit as st
 import psycopg2
 import pandas as pd
@@ -116,16 +117,28 @@ st.divider()
 # -----------------------
 st.subheader("Top 10 by Growth %")
 
-top10 = filtered.head(10).sort_values("growth_pct")
+top10 = filtered.sort_values("growth_pct", ascending=False).head(10)
 
-st.bar_chart(
-    top10.set_index("name")["growth_pct"],
-    horizontal=True,
-    color="#4C9BE8"
+fig = px.bar(
+    top10,
+    x="growth_pct",
+    y="name",
+    orientation="h",
+    color="growth_pct",
+    color_continuous_scale=[
+        "#e0f3ff",
+        "#66b3ff",
+        "#1f77b4"
+    ],
 )
 
-st.divider()
+fig.update_layout(
+    yaxis=dict(categoryorder="total ascending")
+)
 
+st.plotly_chart(fig, use_container_width=True)
+
+st.divider()
 
 # -----------------------
 # STAR GROWTH TABLE
