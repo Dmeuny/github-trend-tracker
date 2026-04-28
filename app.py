@@ -71,6 +71,17 @@ def load_history():
     conn.close()
     return df
 
+try:
+    df = load_trends()
+except Exception as e:
+    st.error(f"Failed to load trends: {e}")
+    st.stop()
+
+try:
+    history = load_history()
+except Exception as e:
+    st.error(f"Failed to load history: {e}")
+    st.stop()
 
 # -----------------------
 # FILTERS
