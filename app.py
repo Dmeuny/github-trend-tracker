@@ -53,7 +53,7 @@ def get_connection():
 # DATA LOAD
 # -----------------------
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=0)
 def load_trends():
     conn = get_connection()
     df = pd.read_sql("""
@@ -64,7 +64,7 @@ def load_trends():
     return df
 
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=0)
 def load_classification():
     conn = get_connection()
     df = pd.read_sql("""
@@ -77,6 +77,10 @@ def load_classification():
 
 trends = load_trends()
 classification = load_classification()
+
+last_updated = trends["last_updated"].max()
+st.info(f"📅 Data last updated: {last_updated.strftime('%Y-%m-%d %H:%M')} UTC")
+
 
 
 # -----------------------
