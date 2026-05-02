@@ -53,7 +53,7 @@ def get_connection():
 # DATA LOAD
 # -----------------------
 
-@st.cache_data(ttl=0)
+@st.cache_data(ttl=3600)
 def load_trends():
     conn = get_connection()
     df = pd.read_sql("""
@@ -64,7 +64,7 @@ def load_trends():
     return df
 
 
-@st.cache_data(ttl=0)
+@st.cache_data(ttl=3600)
 def load_classification():
     conn = get_connection()
     df = pd.read_sql("""
