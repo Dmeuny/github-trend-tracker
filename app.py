@@ -169,18 +169,18 @@ st.divider()
 # -----------------------
 # STAR HISTORY
 # -----------------------
-st.subheader("Star Growth Over Time — Top 5 Repos")
+#st.subheader("Star Growth Over Time — Top 5 Repos")
 
-history = load_history()
+#history = load_history()
 
-fig_line = px.line(
-    history,
-    x="dbt_valid_from",
-    y="stars",
-    color="name",
-    markers=True
-)
-st.plotly_chart(fig_line, use_container_width=True)
+#fig_line = px.line(
+#   history,
+#    x="dbt_valid_from",
+#    y="stars",
+#    color="name",
+#    markers=True
+#)
+#st.plotly_chart(fig_line, use_container_width=True)
 
 
 # -----------------------
