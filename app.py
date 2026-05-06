@@ -53,7 +53,7 @@ def get_connection():
 # DATA LOAD
 # -----------------------
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=60)
 def load_trends():
     conn = get_connection()
     df = pd.read_sql("""
@@ -64,7 +64,7 @@ def load_trends():
     return df
 
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=60)
 def load_classification():
     conn = get_connection()
     df = pd.read_sql("""
@@ -77,6 +77,10 @@ def load_classification():
 
 trends = load_trends()
 classification = load_classification()
+
+if st.button("🔄 Refresh Data"):
+    st.cache_data.clear()
+    st.rerun()
 
 last_updated = trends["last_updated"].max()
 st.info(f"📅 Data last updated: {last_updated.strftime('%Y-%m-%d %H:%M')} UTC")
@@ -115,6 +119,10 @@ m4.metric("Top Mover", filtered.iloc[0]["name"] if len(filtered) > 0 else "—")
 
 st.divider()
 
+if len(filtered) > 0:
+    top = filtered.iloc[0]
+    st.success(f"🚀 **{top['name']}** is today's top mover — **+{top['star_growth']:,} stars** ({top['growth_pct']:.2f}% growth)")
+
 
 # -----------------------
 # TOP MOVERS CHART
@@ -143,6 +151,23 @@ fig.update_layout(
 st.plotly_chart(fig, use_container_width=True)
 
 st.divider()
+
+# -----------------------
+# STAR HISTORY
+# -----------------------
+st.subheader("Star Growth Over Time — Top 5 Repos")
+
+history = load_history()
+
+fig_line = px.line(
+    history,
+    x="dbt_valid_from",
+    y="stars",
+    color="name",
+    markers=True
+)
+st.plotly_chart(fig_line, use_container_width=True)
+
 
 # -----------------------
 # STAR GROWTH TABLE
