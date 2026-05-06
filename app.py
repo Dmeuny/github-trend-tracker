@@ -74,13 +74,27 @@ def load_classification():
     conn.close()
     return df
 
+@st.cache_data(ttl=60)
+def load_history():
+    conn = get_connection()
+    df = pd.read_sql("""
+        SELECT name, stars, dbt_valid_from
+        FROM snapshots.repo_history_snapshot
+        WHERE name IN (
+            SELECT name FROM snapshots.repo_history_snapshot
+            WHERE dbt_valid_to IS NULL
+            ORDER BY stars DESC
+            LIMIT 5
+        )
+        ORDER BY dbt_valid_from
+    """, conn)
+    conn.close()
+    return df
+
 
 trends = load_trends()
 classification = load_classification()
 
-if st.button("🔄 Refresh Data"):
-    st.cache_data.clear()
-    st.rerun()
 
 last_updated = trends["last_updated"].max()
 st.info(f"📅 Data last updated: {last_updated.strftime('%Y-%m-%d %H:%M')} UTC")
