@@ -186,7 +186,11 @@ st.divider()
 # -----------------------
 # STAR GROWTH TABLE
 # -----------------------
-st.subheader(f"{category_filter} Repos — Ranked by Growth")
+st.subheader(
+    "Trending Repos — Ranked by Growth"
+    if category_filter == "ALL"
+    else f"{category_filter} Repos — Ranked by Growth"
+)
 
 display_df = filtered[[
     "name", "topic_reclassified", "current_stars", "star_growth", "growth_pct", "last_updated"
