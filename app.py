@@ -186,7 +186,12 @@ st.divider()
 # -----------------------
 # STAR GROWTH TABLE
 # -----------------------
-st.subheader("All Repos — Ranked by Growth")
+if selected_filter == "All":
+    title = "Trending GitHub Repos — Ranked by Growth"
+else:
+    title = f"{selected_filter} Repos — Ranked by Growth"
+
+st.subheader(title)
 
 display_df = filtered[[
     "name", "topic_reclassified", "current_stars", "star_growth", "growth_pct", "last_updated"
