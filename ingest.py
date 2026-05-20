@@ -2,14 +2,13 @@ import os
 from dotenv import load_dotenv
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-DBT_DIR = os.path.join(SCRIPT_DIR, "my_project")
+DBT_DIR = r"C:\Users\dmeun\Desktop\Github API\my_project"
 load_dotenv(os.path.join(SCRIPT_DIR, ".env"))
 RATE_LIMIT_FILE = os.path.join(SCRIPT_DIR, "last_run.json")
 
 print("Looking for .env at:", os.path.join(SCRIPT_DIR, ".env"))
 print("File exists:", os.path.exists(os.path.join(SCRIPT_DIR, ".env")))
 
-import subprocess
 import requests
 import psycopg2
 import hashlib
@@ -17,7 +16,8 @@ import json
 import time
 from datetime import datetime, timedelta
 import base64
-from prefect import flow, task
+from prefect_dbt import PrefectDbtRunner, PrefectDbtSettings
+from prefect import flow, task, get_run_logger
 
 print("DB_HOST:", os.getenv("DB_HOST"))
 print("DB_NAME:", os.getenv("DB_NAME"))
@@ -25,8 +25,6 @@ print("DB_NAME:", os.getenv("DB_NAME"))
 # -----------------------
 # CONFIG
 # -----------------------
-
-UPDATE_INTERVAL_DAYS = 1
 
 DB_CONFIG = {
     "host":     os.getenv("DB_HOST", "localhost"),
@@ -37,35 +35,6 @@ DB_CONFIG = {
 }
 
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
-
-
-# -----------------------
-# RATE LIMIT GUARD
-# last_run.json always lives next to ingest.py
-# regardless of where the script is run from
-# -----------------------
-
-def is_too_soon():
-    if not os.path.exists(RATE_LIMIT_FILE):
-        return False
-
-    with open(RATE_LIMIT_FILE, "r") as f:
-        data = json.load(f)
-
-    last_run = datetime.fromisoformat(data.get("last_run", "2000-01-01"))
-    next_allowed = last_run + timedelta(days=UPDATE_INTERVAL_DAYS)
-
-    if datetime.now() < next_allowed:
-        print(f"Rate limit active. Next run allowed after: {next_allowed.strftime('%Y-%m-%d %H:%M')}")
-        return True
-
-    return False
-
-
-def record_run():
-    with open(RATE_LIMIT_FILE, "w") as f:
-        json.dump({"last_run": datetime.now().isoformat()}, f)
-
 
 # -----------------------
 # CLASSIFICATION
@@ -158,9 +127,19 @@ def fetch_repos():
     seen_ids = set()
     all_repos = []
 
+    recent_date = (datetime.now() - timedelta(days=90)).strftime("%Y-%m-%d")
+
     queries = [
-    "airflow dbt etl pipeline data engineering",
-    "machine learning LLM transformer pytorch"
+        "data engineering",
+        "dbt",
+        "airflow",
+        "machine learning",
+        "LLM",
+        "AI agents",
+        "RAG",
+        "langchain",
+        "MCP server",
+        "agentic AI",
     ]
 
     print("ACTIVE QUERIES:", queries)
@@ -173,10 +152,10 @@ def fetch_repos():
                 "https://api.github.com/search/repositories",
                 headers=headers,
                 params={
-                    "q": query,
+                    "q": f"{query} pushed:>{recent_date} stars:>100",
                     "sort": "stars",
                     "order": "desc",
-                    "per_page": 30,
+                    "per_page": 50,
                 },
                 timeout=10,
             )
@@ -203,7 +182,6 @@ def fetch_repos():
 
     print(f"Total unique repos fetched: {len(all_repos)}")
     return all_repos
-
 
 # -----------------------
 # README FETCH
@@ -336,20 +314,18 @@ def run_scd2_merge(cur):
 # -----------------------
 # MAIN
 # Order of operations:
-#   1. Rate limit check
-#   2. Fetch from GitHub API
-#   3. TRUNCATE staging_cleaned
-#   4. INSERT into staging_cleaned (with README enrichment for top 20)
-#   5. UPDATE repo_history (expire changed)
-#   6. INSERT into repo_history (new + changed)
-#   7. Single commit
-#   8. Record run timestamp
+#   1. Fetch from GitHub API
+#   2. TRUNCATE staging_cleaned
+#   3. INSERT into staging_cleaned (with README enrichment for top 20)
+#   4. UPDATE repo_history (expire changed)
+#   5. INSERT into repo_history (new + changed)
+#   6. Single commit
+#   7. dbt snapshot
+#   8. dbt run
 # -----------------------
 
 @flow(name="github-trend-pipeline")
 def main():
-    if is_too_soon():
-        return
 
     repos = fetch_repos()
 
@@ -374,15 +350,18 @@ def main():
         print(f"Database error: {e}")
         return
 
-    record_run()
-    print(f"Run recorded. Next run allowed in {UPDATE_INTERVAL_DAYS} day(s).")
-    
-    subprocess.run(["dbt", "snapshot"], cwd=DBT_DIR)
-    subprocess.run(["dbt", "run"], cwd=DBT_DIR)
+
+    settings = PrefectDbtSettings(
+        project_dir=DBT_DIR,
+        profiles_dir=r"C:\Users\dmeun\.dbt"
+    )
+    runner = PrefectDbtRunner(settings=settings)
+    runner.invoke(["snapshot"])
+    runner.invoke(["run"])
 
 
 if __name__ == "__main__":
     main.serve(
         name="github-daily",
-        interval=86400,
+        interval=43200,  # 12 hours
     )
