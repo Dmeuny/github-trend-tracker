@@ -236,6 +236,74 @@ st.dataframe(
 )
 
 
+st.divider()
+
+# -----------------------
+# LANGUAGE BREAKDOWN
+# -----------------------
+st.subheader("Top Languages")
+
+@st.cache_data(ttl=60)
+def load_languages():
+    conn = get_connection()
+    df = pd.read_sql("""
+        SELECT language, topic, COUNT(*) as repo_count
+        FROM repo_history
+        WHERE is_current = TRUE
+        AND language IS NOT NULL
+        GROUP BY language, topic
+        ORDER BY repo_count DESC
+    """, conn)
+    conn.close()
+    return df
+
+lang_df = load_languages()
+
+# Filter by current category selection
+lang_filtered = lang_df if category_filter == "ALL" else lang_df[lang_df["topic"] == category_filter]
+
+top_languages = (
+    lang_filtered.groupby("language")["repo_count"]
+    .sum()
+    .reset_index()
+    .sort_values("repo_count", ascending=False)
+    .head(10)
+)
+
+fig_lang = px.bar(
+    top_languages,
+    x="language",
+    y="repo_count",
+    color="repo_count",
+    color_continuous_scale=["#e0f3ff", "#66b3ff", "#1f77b4"],
+    labels={"language": "Language", "repo_count": "Repos"},
+)
+
+fig_lang.update_layout(coloraxis_showscale=False)
+st.plotly_chart(fig_lang, use_container_width=True)
+
+st.divider()
+
+# -----------------------
+# CATEGORY SPLIT
+# -----------------------
+st.subheader("Category Split")
+
+category_counts = df.groupby("topic_reclassified")["name"].count().reset_index()
+category_counts.columns = ["Category", "Repos"]
+
+fig_donut = px.pie(
+    category_counts,
+    names="Category",
+    values="Repos",
+    hole=0.5,
+    color_discrete_sequence=["#1f77b4", "#66b3ff", "#e0f3ff"],
+)
+
+fig_donut.update_traces(textposition="outside", textinfo="percent+label")
+st.plotly_chart(fig_donut, use_container_width=True)
+
+
 # -----------------------
 # FOOTER
 # -----------------------
