@@ -37,44 +37,76 @@ DB_CONFIG = {
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 
 # -----------------------
-# CLASSIFICATION
+# CLASSIFICATION v2
 # Priority: exclude → AI names → DE names → keyword match
 # DE checked before AI — "airflow for LLMs" → DE
+#
+# Changes from v1:
+#   1. Name normalization: hyphens/underscores → spaces before keyword match
+#      catches "data_engineering_for_beginners_code", "Data-Engineering-HowTo", etc.
+#   2. Extended ai_names: prefix/substring patterns for large ML repos
+#      (applied-ml, ml-from-scratch, homemade-machine-learning, etc.)
+#   3. Extended de_names: opaque-name DE repos where branding hides the domain
+#      (jaffle_shop, streamify, couler, feathr, orchest, re-data, etc.)
+#   4. Added "duckdb" and "pipeline" to DE keyword list
+#   5. Added "cloakify" to exclude list
 # -----------------------
 
 def classify_repo(repo, readme_text=""):
-    name     = repo["name"].lower()
-    text     = (repo["name"] + " " + (repo["description"] or "")).lower()
-    combined = text + " " + readme_text
+    name            = repo["name"].lower()
+    name_normalized = name.replace("-", " ").replace("_", " ")   # FIX 1
+    text            = (name_normalized + " " + (repo["description"] or "")).lower()
+    combined        = text + " " + readme_text
 
     # Explicit exclusions — junk repos that match keywords accidentally
-    exclude = ["c-plus-plus", "assemblies-of-putative"]
+    exclude = [
+        "c-plus-plus",
+        "assemblies-of-putative",
+        "cloakify",                                               # FIX 5
+    ]
     if any(n in name for n in exclude):
         return "OTHER"
 
     # Explicit AI overrides — repos where name alone is enough
     ai_names = [
-    "ollama", "dify", "mljar-supervised", "everything-claude-code",
-    "firecrawl", "open-webui", "awesome-llm-apps", "hermes-agent",
-    "langchain", "llama.cpp", "llm-course", "llms-from-scratch",
-    "ml-for-beginners", "ragflow", "pathway", "llm-app",
-    "llm-driven-data-engineering", "autogpt", "transformers",
-    "funnlp", "mineru", "yt-channels-ds-ai-ml-cs"]
+        "ollama", "dify", "mljar-supervised", "everything-claude-code",
+        "firecrawl", "open-webui", "awesome-llm-apps", "hermes-agent",
+        "langchain", "llama.cpp", "llm-course", "llms-from-scratch",
+        "ml-for-beginners", "ragflow", "pathway", "llm-app",
+        "llm-driven-data-engineering", "autogpt", "transformers",
+        "funnlp", "mineru", "yt-channels-ds-ai-ml-cs",
+        # FIX 2 — large ML repos with opaque or non-keyword names
+        "applied-ml", "homemade-machine-learning", "mlcourse",
+        "ml-from-scratch", "ml-nlp", "stanford-cs-229",
+        "machine-learning-for-software-engineers", "machine-learning-tutorials",
+        "pyprobml", "composio",
+    ]
     if any(n in name for n in ai_names):
         return "AI"
 
     # Explicit DE overrides
-    de_names = ["argo-workflows", "lightdash", "soda-core", "data-diff",
-                "dolphinscheduler", "datafusion"]
+    de_names = [
+        "argo-workflows", "lightdash", "soda-core", "data-diff",
+        "datafusion", "dolphinscheduler",
+        # FIX 3 — branded/opaque DE repos
+        "jaffle-shop", "jaffle_shop", "streamify", "couler",
+        "feathr", "re-data", "orchest", "gusty", "kuwala",
+        "mara-pipelines", "around-dataengineering", "thedataengineeringbook",
+        "dataspherestudio", "tensorbase", "astronomer-providers",
+        "nba-monte-carlo", "aws-mwaa-local-runner", "automate-dv",
+        "energy-forecasting", "evidence",
+    ]
     if any(n in name for n in de_names):
         return "DE"
 
-    # Keyword matching on name + description + readme (top 20 repos only)
+    # Keyword matching on normalized name + description + readme (top 20 repos only)
+    # Note: text uses name_normalized, so "data-engineering" matches "data engineering"
     if any(word in combined for word in [
-        "data engineering", "dbt", "airflow", "spark", "etl", 
+        "data engineering", "dbt", "airflow", "spark", "etl",
         "warehouse", "lakehouse", "ingestion", "kafka",
         "flink", "dagster", "prefect", "airbyte", "workflow",
-        "orchestrat", "data quality", "fivetran"
+        "orchestrat", "data quality", "fivetran",
+        "duckdb", "pipeline",                                     # FIX 4
     ]):
         return "DE"
 
@@ -82,7 +114,7 @@ def classify_repo(repo, readme_text=""):
         "llm", "machine learning", "pytorch", "tensorflow",
         "transformer", "generative", "gpt", "gemini", "mistral",
         "inference", "fine-tun", "embedding", "vector", "rag",
-        "diffusion", "automl", "neural", "deep learning"
+        "diffusion", "automl", "neural", "deep learning",
     ]):
         return "AI"
 
