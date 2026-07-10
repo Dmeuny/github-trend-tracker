@@ -57,7 +57,7 @@ def get_connection():
 def load_trends():
     conn = get_connection()
     df = pd.read_sql("""
-        SELECT name, current_stars, prev_stars, star_growth, growth_pct, last_updated
+        SELECT repo_id, name, current_stars, prev_stars, star_growth, growth_pct, last_updated
         FROM dbt_dbt.repo_trends
     """, conn)
     conn.close()
@@ -68,7 +68,7 @@ def load_trends():
 def load_classification():
     conn = get_connection()
     df = pd.read_sql("""
-        SELECT name, topic_reclassified, de_score, ai_score
+        SELECT repo_id, name, topic_reclassified, de_score, ai_score
         FROM dbt_dbt.repo_classification
     """, conn)
     conn.close()
@@ -105,7 +105,7 @@ st.info(f"📅 Data last updated: {last_updated.strftime('%Y-%m-%d %H:%M')} UTC"
 # DATA PREP
 # -----------------------
 
-df = trends.merge(classification, on="name", how="left")
+df = trends.merge(classification, on="repo_id", how="left")
 
 
 # -----------------------
