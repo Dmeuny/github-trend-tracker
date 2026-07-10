@@ -105,7 +105,7 @@ st.info(f"📅 Data last updated: {last_updated.strftime('%Y-%m-%d %H:%M')} UTC"
 # DATA PREP
 # -----------------------
 
-df = trends.merge(classification, on="repo_id", how="left")
+df = trends.merge(classification, on="repo_id", how="inner")
 
 
 # -----------------------
