@@ -68,7 +68,7 @@ def load_trends():
 def load_classification():
     conn = get_connection()
     df = pd.read_sql("""
-        SELECT repo_id, name, topic_reclassified, de_score, ai_score
+        SELECT repo_id, topic_reclassified, de_score, ai_score
         FROM dbt_dbt.repo_classification
     """, conn)
     conn.close()
