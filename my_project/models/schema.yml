@@ -1,0 +1,43 @@
+version: 2
+
+models:
+  - name: stg_github_repos
+    columns:
+      - name: repo_id
+        tests:
+          - not_null
+
+  - name: repo_features
+    columns:
+      - name: repo_id
+        tests:
+          - not_null
+          - unique
+
+  - name: repo_scoring
+    columns:
+      - name: repo_id
+        tests:
+          - not_null
+      - name: de_score
+        tests:
+          - not_null
+      - name: ai_score
+        tests:
+          - not_null
+
+  - name: repo_classification
+    columns:
+      - name: repo_id
+        tests:
+          - not_null
+      - name: topic_reclassified
+        tests:
+          - accepted_values:
+              values: ['DE', 'AI', 'OTHER']
+
+  - name: repo_trends
+    columns:
+      - name: repo_id
+        tests:
+          - not_null

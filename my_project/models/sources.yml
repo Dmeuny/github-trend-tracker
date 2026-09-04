@@ -1,0 +1,9 @@
+version: 2
+
+sources:
+  - name: github
+    database: postgres
+    schema: public
+    tables:
+      - name: staging_cleaned
+      - name: repo_history
