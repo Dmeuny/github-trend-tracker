@@ -4,19 +4,21 @@ select
 
     -- DE score
     (
-        3 * has_dbt +
-        2 * has_pipeline +
-        2 * has_orchestration +
-        1 * has_sql
+        4 * has_dbt +
+        4 * has_data_pipeline +
+        3 * has_orchestration +
+        3 * has_data_platform +
+        3 * has_data_modeling +
+        2 * has_data_processing
     ) as de_score,
 
     -- AI score
-   -- AI score
-(
-    3 * has_llm +
-    2 * has_ai_frameworks +
-    2 * has_embeddings +
-    2 * has_ml_framework
-) as ai_score
+    (
+        4 * has_llm +
+        3 * has_ai_frameworks +
+        3 * has_retrieval +
+        3 * has_ml +
+        4 * has_agents
+    ) as ai_score
 
 from {{ ref('repo_features') }}
